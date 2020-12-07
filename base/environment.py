@@ -130,16 +130,3 @@ class Environment:
         else:
             S = {'game': self.game, 'round': self.round}
         return S
-    
-
-
-env = Environment()
-'''
-env.start_round()
-agent1 = env.round.players[0]
-agent2 = env.round.players[1]
-env.perform_action(agent1, '1', env.get_state(agent1)['options'])
-env.perform_action(agent2, '1', env.get_state(agent2)['options'])
-env.perform_action(agent1, '0', env.get_state(agent1)['options'])
-env.perform_action(agent2, 1, env.get_state(agent2)['options'])
-'''
