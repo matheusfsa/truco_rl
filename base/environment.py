@@ -40,7 +40,7 @@ class Environment:
             card = None
             bet = self.round.bet()
             # Give possibility to raise the bet, if not asked by the team before:
-            if self.round.last_bet_call != self.round.teams[player] and self.round.round_score != 12:
+            if self.round.last_bet_call != self.round.teams[player] and self.round.round_score != 9:
                 options['0'] = bet[0]
         return options
 
@@ -75,9 +75,8 @@ class Environment:
                         print("{} ESCONDEU uma carta...".format(player))
                         card = player.hand.draw_specific(S['options'][choice[0]])
                         visible = False
-                    else:
-                        valid = True
                     print("{}, jogou: {}".format(player, card if visible else None))
+                    print("")
                     played = {'card': card, 'visible': visible, 'round_over': round_over, 'call': False}
             self.update(player, played)
 
@@ -115,7 +114,6 @@ class Environment:
                         self.round.count_round += 1
             if not self.round.game_round:
                 self.round.dischard_cards()
-            print()
             self.round.turn  = (self.round.turn + 1)%2
 
     def initial_state(self): 
