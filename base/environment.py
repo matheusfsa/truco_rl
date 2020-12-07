@@ -115,6 +115,7 @@ class Environment:
                         self.round.count_round += 1
             if not self.round.game_round:
                 self.round.dischard_cards()
+            print()
             self.round.turn  = (self.round.turn + 1)%2
 
     def initial_state(self): 
