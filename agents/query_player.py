@@ -2,7 +2,8 @@ from base import Player
 
 class QAPlayer(Player):
     def act(self, S):
-        #print('Table:', self.table)
+        print("Sua mão,", self, ":", [card.name for card in self.hand])
+        print("Manilha:", S['round'].manilha)
         if isinstance(S['options'], list):
             self.options = S['options']
         else:

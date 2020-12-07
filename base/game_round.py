@@ -33,8 +33,6 @@ class GameRound: #also known as Rodada ou Partida.
         if current_score == 6:
             return "Nove!", 9
         if current_score == 9:
-            return "Doze!", 12
-        if current_score == 12:
             return "", 0
 
     def deal(self):
