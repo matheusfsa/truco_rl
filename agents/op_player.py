@@ -1,13 +1,13 @@
-from base import Player, TrucoCard
+from base.player import Player
+from base.card import TrucoCard
 import random
 
 class OpPlayer(Player):
     def act(self, S):
         
         state = self.observe(S)
-        print("Sua mão,", self, ":", [card.name for card in self.hand])
-        print("Manilha:", S['round'].manilha)
         actions = self.actions
+        
         weights = [0 for _ in range(len(actions))]
         if state['in_call']:
             if state['can_raise']:
@@ -29,7 +29,6 @@ class OpPlayer(Player):
                     weights[-1] = 1-  0.1*(len(actions)-1)
             else:
                 weights = [1.0/len(actions) for i in range(len(actions))]
-        
         choice = random.choices(actions, weights=weights)
         return self.get_option(choice[0], state)
 

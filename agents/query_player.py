@@ -1,4 +1,4 @@
-from base import Player
+from base.player import Player
 
 class QAPlayer(Player):
     def act(self, S):

@@ -1,8 +1,9 @@
 from .player import Player
 from .card import generate_deck, ranks_names
 
+
 class GameRound: #also known as Rodada ou Partida.
-    def __init__(self, game, dealer: Player):
+    def __init__(self, game, dealer, verbose=False):
         self.game = game
         self.dealer = dealer
         self.flop = None
@@ -15,9 +16,11 @@ class GameRound: #also known as Rodada ou Partida.
         self.teams = game.teams
         self.cards_round = {}
         self.turn = 0
+        self.call_turn = 0
         self.in_call = False
         self.winners = [] # Who won each turn of the round 3/3
         self.game_round = True
+        self.verbose = verbose
 
     def send_turn(self):
         for i in range(len(self.players)):
@@ -73,16 +76,18 @@ class GameRound: #also known as Rodada ou Partida.
         winner = None
         manilhas = {}
         cards = []
-        print("Manilha: ", self.manilha)
+        if self.verbose:
+            print("Manilha: ", self.manilha)
         player_by_card = {}
         for player, play in self.cards_round.items():
             if play['visible'] == True:
                 cards.append(play['card'])
                 player_by_card[play['card'].name] = player
-                print("Jogador: {} jogou {}".format(player, play['card']))  # if play['visible'] == True else None
+                if self.verbose:
+                    print("Jogador: {} jogou {}".format(player, play['card']))  # if play['visible'] == True else None
                 # Looking for shackles in the current table
                 if play['card'].rank == self.manilha:
-                    print("Opá!! Temos uma manilha! {} jogada por {}".format(play['card'].suit_name, player))
+                    #print("Opá!! Temos uma manilha! {} jogada por {}".format(play['card'].suit_name, player))
                     manilhas[player] = play['card']
 
         if manilhas != {}:
@@ -95,7 +100,8 @@ class GameRound: #also known as Rodada ou Partida.
                     high_card = manilha
                     winner = player
             # winner = player_by_card[high_card.name]
-            print("\n\n\tVencedor da rodada: {} com {}".format(winner,high_card))
+            if self.verbose:
+                print("\n\tVencedor da rodada: {} com {}".format(winner,high_card))
             return winner
         else:
             tied = []
@@ -106,11 +112,13 @@ class GameRound: #also known as Rodada ou Partida.
                 if card.rank == high_rank:
                     tied.append(card)
             if len(tied) > 1:
-                print("\n\n\tEmpate!")
+                if self.verbose:
+                    print("\n\tEmpate!")
                 return None
             else:
                 winner = player_by_card[tied[0].name]
-                print("\n\t{} jogou a maior carta {}".format(winner, tied[0]))
+                if self.verbose:
+                    print("\n\t{} jogou a maior carta {}".format(winner, tied[0]))
                 return winner
 
 
@@ -143,11 +151,13 @@ class GameRound: #also known as Rodada ou Partida.
                 self.cards_round[player] = played
                 # Does anybody run away of this match? Example: when increasing the bet?
                 if played['round_over'] == True:
-                    print("Fim dessa partida!")
+                    if self.verbose:
+                        print("Fim dessa partida!")
                     self.game_round = False
                     break
             else:  # No more players...
-                print("\nTodos jogaram!?")
+                if self.verbose:
+                    print("\nTodos jogaram!?")
                 winner = self.find_winner()
                 self.game_round = self.check_round_alive(winner)
                 self.count_round += 1
@@ -169,29 +179,34 @@ class GameRound: #also known as Rodada ou Partida.
             if self.winners[0] == self.winners[1] and self.winners[0]:
                 winner = self.winners[1]
                 self.game.scores[winner] += self.round_score
-                print("Vencedor da rodada: Time {}: +{} tentos".format(winner,self.round_score))
+                if self.verbose:
+                    print("Vencedor da rodada: Time {}: +{} tentos".format(winner,self.round_score))
                 return False
             if self.winners[1] and not self.winners[0]: # Tied first but not second.
                 winner = self.winners[1]
                 self.game.scores[winner] += self.round_score
-                print("Vencedor da rodada: Time {}: +{} tentos".format(winner,self.round_score))
+                if self.verbose:
+                    print("Vencedor da rodada: Time {}: +{} tentos".format(winner,self.round_score))
                 return False
             if self.winners[0] and not self.winners[1]: # Won first but tied second.
                 winner = self.winners[0]
                 self.game.scores[winner] += self.round_score
-                print("A primeira é caminhão de boi! Venceu time {}: +{} tentos".format(winner,self.round_score))
+                if self.verbose:
+                    print("A primeira é caminhão de boi! Venceu time {}: +{} tentos".format(winner,self.round_score))
                 return False
             return True # both are Tied. Play last one!
 
         if self.count_round == 3:
             if not self.winners[0] and not self.winners[1] and not self.winners[2]:
-                print("EMPATE 3/3!!!!")
+                if self.verbose:
+                    print("EMPATE 3/3!!!!")
                 return False
             if self.winners[2]:
                 winner = self.winners[2]
                 self.game.scores[winner] += self.round_score
-                print("Rodada disputada e vencida pelo time {}: +{} tentos".format(winner,
-                                                                                    self.round_score))
+                if self.verbose:
+                    print("Rodada disputada e vencida pelo time {}: +{} tentos".format(winner,
+                                                                                        self.round_score))
                 return False
 
     def dischard_cards(self):
@@ -231,6 +246,7 @@ class GameRound: #also known as Rodada ou Partida.
                 # increase_bet = input("\nPedir {}?".format(bet[0]))
                 options['0'] = bet[0]
             else:
+                
                 print("Você não pode pedir {}...".format(bet[0]))
 
             print("\n\tVira: {}\n\tManilhas: {}: {}".format(self.flop, self.manilha, ranks_names(self.manilha)))

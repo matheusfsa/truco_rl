@@ -1,13 +1,14 @@
 import pyCardDeck
 from typing import List
-from base import generate_deck, Player, GameRound, ranks_names
-from agents import *
+from .card import generate_deck, ranks_names
+from .player import Player
+from .game_round import GameRound
 
 
 
 class TrucoGame:
 
-    def __init__(self, players: List[Player], sujo=True):
+    def __init__(self, players: List[Player], sujo=True, verbose=True):
         self.deck = pyCardDeck.Deck(generate_deck(sujo),name="Truco Sujo", reshuffle=False)
         self.sujo = sujo
         self.deck_size = len(self.deck)
@@ -19,16 +20,18 @@ class TrucoGame:
         self._teams()
         self.scores = {1: 0, 2: 0} #team: score
         self.ranks_names = ranks_names()
-        self.show_table()
+        self.verbose = verbose
+        #self.show_table()
 
     def createGameRound(self, dealer):
-        return GameRound(self, dealer)
+        return GameRound(self, dealer, verbose=self.verbose)
 
     def show_table(self):
-        print("Jogo criado com {} jogadores. \n\t Mesa disposta:".format(len(self.players)))
-        print("\t", *self.players[:int(len(self.players)/2)][::-1], sep="\t")
-        print("\n")
-        print("\t", *self.players[int(len(self.players)/2):], sep="\t")
+        if self.verbose:
+            print("Jogo criado com {} jogadores. \n\t Mesa disposta:".format(len(self.players)))
+            print("\t", *self.players[:int(len(self.players)/2)][::-1], sep="\t")
+            print("\n")
+            print("\t", *self.players[int(len(self.players)/2):], sep="\t")
 
     def _teams(self):
         team = 1
@@ -48,10 +51,12 @@ class TrucoGame:
         max_card = self.deck.draw_specific("Quatro de Ouros") # Lowest card for comparison
         cards = []
         cards.append(max_card)
-        print("\nQuem sortear a maior carta e naipe começa embaralhando...")
+        if self.verbose:
+            print("\nQuem sortear a maior carta e naipe começa embaralhando...")
         for player in self.players:
             card = self.deck.draw_random()
-            print("\t{} \ttirou a carta: {}".format(player, card))
+            if self.verbose:
+                print("\t{} \ttirou a carta: {}".format(player, card))
             if card >= max_card:
                 if card.rank == max_card.rank:
                     if card.suit > max_card.suit:
@@ -64,7 +69,8 @@ class TrucoGame:
         # Give cards back to the deck:
         self.dischard_cards(cards)
         self.deck.shuffle_back()
-        print("\nQuem começa é o {}".format(dealer))
+        if self.verbose:
+            print("\nQuem começa é o {}".format(dealer))
         return dealer
 
     def dischard_cards(self,cards):
@@ -76,35 +82,41 @@ class TrucoGame:
         """
 
         game = True
-        print("\nPreparando...")
+        if self.verbose:
+            print("\nPreparando...")
         initial_dealer = self.pick_dealer()
         self.change_player_order(initial_dealer)
         all_dealers = []
         while game:
             self.deck.shuffle_back()
-            print("Distribuindo as cartas ")
+            if self.verbose:
+                print("Distribuindo as cartas ")
             all_dealers.append(initial_dealer.name)
             game_round = self.createGameRound(initial_dealer)
             game_round.deal()
             game_round.start()
-            print("======================")
+            if self.verbose:
+                print("======================")
             initial_dealer = self.change_player_order()  # move deck to next player
-            print("Placar: \n")
-            print("\tTime 1\t x\t Time 2")
-            print(" \t{}\t x\t {}".format(self.scores[1],self.scores[2]))
-            print("======================")
+            if self.verbose:
+                print("Placar: \n")
+                print("\tTime 1\t x\t Time 2")
+                print(" \t{}\t x\t {}".format(self.scores[1],self.scores[2]))
+                print("======================")
 
-            print(all_dealers) # Debuging help
+                print(all_dealers) # Debuging help
             if self.scores[1] >= 12:
                 game = False
-                print("Fim de Jogo!!")
-                print("Vitória do time 1: ", [*self.team1])
-                print("Adeus!")
+                if self.verbose:
+                    print("Fim de Jogo!!")
+                    print("Vitória do time 1: ", [*self.team1])
+                    print("Adeus!")
             if self.scores[2] >= 12:
                 game = False
-                print("Fim de Jogo!!")
-                print("Vitória do time 2: ", [*self.team2])
-                print("Adeus!")
+                if self.verbose:
+                    print("Fim de Jogo!!")
+                    print("Vitória do time 2: ", [*self.team2])
+                    print("Adeus!")
 
     def change_player_order(self, initial=None):
         self.players.append(self.players.pop(0))

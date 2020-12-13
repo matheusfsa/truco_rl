@@ -37,9 +37,10 @@ class TrucoCard(BaseCard):
     def to_array(self):
         ranks = ['4', '5', '6', '7', 'Q', 'J', 'K', 'A', '2', '3']
         i = ranks.index(self.rank)
-        j = self.suit
+        j = (self.suit - 1)
         res = np.zeros((len(ranks)*4,))
-        res[i*len(ranks) + j] = 1
+        res[j*len(ranks) + i] = 1
+        return res
 
 def ranks_names(rank= None):
     ranks = {'4': 'Quatro', '5': 'Cinco', '6': 'Seis', '7': 'Sete', 'Q': 'Dama', 'J': 'Valete',
