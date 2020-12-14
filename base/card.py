@@ -38,7 +38,7 @@ class TrucoCard(BaseCard):
         ranks = ['4', '5', '6', '7', 'Q', 'J', 'K', 'A', '2', '3']
         i = ranks.index(self.rank)
         j = (self.suit - 1)
-        res = np.zeros((len(ranks),))
+        res = np.zeros((len(ranks)*4,))
         res[j*len(ranks) + i] = 1
         return res
 
