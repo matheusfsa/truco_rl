@@ -101,10 +101,9 @@ class QAgent(RLAgent):
             return self.actions[a]
 
 
-    def fit(self):
-        rewards = np.zeros((self.episodes,))  
-        self.epsilon = 1.0  
-        for i in range(self.episodes):
+    def fit(self,  gamma=0.8, lr=0.125, epsilon=1.0, e_decr=0.99, episodes=1000):
+        rewards = np.zeros((episodes,))  
+        for i in range(episodes):
             
             state = self.task.initial_state()
             s, actions = self.observe(state)
@@ -118,21 +117,21 @@ class QAgent(RLAgent):
                 s1, actions = self.observe(state)
                 if not self.task.is_finished(self.state):
                     
-                    self.Q[tuple(s)][a] +=  self.lr*(R*self.greedy(s1) - self.Q[tuple(s)][a])
+                    self.Q[tuple(s)][a] +=  lr*(R*self.greedy(s1) - self.Q[tuple(s)][a])
                     
                 else:
-                    self.Q[tuple(s)][0] = self.lr*(R - self.Q[tuple(s)][a])
+                    self.Q[tuple(s)][0] = R 
                 s = s1
-            self.epsilon *= 0.9
+            epsilon *= e_decr
             rewards[i] = R
             wins = ((rewards > 0).sum()/(i+1)) * 100
             if R >= 1:
-                print('\rWin rate:{}% Episode:{}/{}:{} won!         '.format(int(wins), i+1, self.episodes, self.name), end='')
+                print('\rWin rate:{}% Episode:{}/{}:{} won!         '.format(int(wins), i+1, episodes, self.name), end='')
             else:
-                print('\rWin rate:{}% Episode:{}/{}:{} was defeated!'.format(int(wins), i+1, self.episodes, self.name), end='')
+                print('\rWin rate:{}% Episode:{}/{}:{} was defeated!'.format(int(wins), i+1, episodes, self.name), end='')
             #print('reward:', R)    
             #print('-----------------------------------------------------------------------')
-        wins = ((rewards > 0).sum()/self.episodes) * 100
+        wins = ((rewards > 0).sum()/episodes) * 100
         print('\nThe agent won {:.2f}% of the rounds'.format(wins))
         print('Número de estados visitados:', len(self.Q.keys()))
         return rewards   
