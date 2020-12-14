@@ -2,6 +2,7 @@ from .rl_agent import RLAgent
 from .op_player import OpPlayer
 from base.task import Task
 import numpy as np
+import random
 
 class QAgent(RLAgent):
 
@@ -29,7 +30,7 @@ class QAgent(RLAgent):
         ranks = ['4', '5', '6', '7', 'Q', 'J', 'K', 'A', '2', '3']
         self.state = state
         n_ranks = len(ranks)
-        n_cards = n_ranks*4
+        n_cards = n_ranks
         state_res = np.zeros((n_cards + n_ranks + n_cards +5,))
         hand = list(self.hand).copy()
         
@@ -72,16 +73,33 @@ class QAgent(RLAgent):
             self.Q[s] = actions
         return self.Q[s]
     
-    def chose_action(self, actions):
+    def epsilon_greedy(self, actions, epsilon):
+        best_a =  actions.argmax()
+        m = actions.shape[0]
+        acs = [i for i in range(m)]
+        weights = [(epsilon/m) * (1-epsilon) if i == best_a else (epsilon/m) for i in range(m)]
+        choice = random.choices(acs, weights=weights)
+        return choice[0]
+
+    def epsilon_policy(self, actions, epsilon):
         rnd = np.random.rand()
-        if rnd > self.epsilon:
+        if rnd > epsilon:
             return actions.argmax()
         else:
             return np.random.randint(actions.shape[0])
+
+    def chose_action(self, actions):
+        return self.epsilon_policy(actions, self.epsilon)
+        
     
     def greedy(self,s):
         return self.Q[tuple(s)].max()
     
+    def reset(self):
+        for s in self.Q.keys():
+            self.Q[s] *= 0
+        print("The agent was successfully reset!")
+
     def action_to_option(self, a):
         if self.in_call:
             return self.actions[a]
@@ -101,38 +119,64 @@ class QAgent(RLAgent):
             return self.actions[a]
 
 
-    def fit(self,  gamma=0.8, lr=0.125, epsilon=1.0, e_decr=0.99, episodes=1000):
+    def fit(self,  gamma=0.8, lrs=0.125, epsilon=1.0, e_decr=0.99, episodes=1000, reset=True):
+        if reset:
+            self.reset()
+        self.epsilon = epsilon
         rewards = np.zeros((episodes,))  
+        wins_episodes = np.zeros((episodes,))  
+        wins_10_episodes = np.zeros((episodes,))
+        lr_episodes = np.zeros((episodes,))
+        epsilon_episodes = np.zeros((episodes,))
+        changes = -1
+        if isinstance(lrs, list):
+            ep_change =  episodes/len(lrs)
+            changes = 0 
+        else:
+            lr = lrs
         for i in range(episodes):
-            
+            if changes >= 0:
+                if i % ep_change == 0:
+                    lr = lrs[changes]
+                    changes += 1
+
+            self.epsilon = 1/(i+1)
             state = self.task.initial_state()
             s, actions = self.observe(state)
             R = self.task.get_reward(state)
             while not self.task.is_finished(self.state):
                 a = self.chose_action(actions)
-                
                 action = self.action_to_option(a)
                 state = self.task.step(action, state)
-                R = self.task.get_reward(state)
+                R = self.task.get_reward(state)*5
                 s1, actions = self.observe(state)
                 if not self.task.is_finished(self.state):
-                    self.Q[tuple(s)][a] = (1-lr)*self.Q[tuple(s)][a] + lr*(R*self.greedy(s1) - self.Q[tuple(s)][a])
+                    self.Q[tuple(s)][a] = self.Q[tuple(s)][a] + lr*(R*self.greedy(s1) - self.Q[tuple(s)][a])
                 else:
                     self.Q[tuple(s)][0] = R 
                 s = s1
-            epsilon *= e_decr
+            #self.epsilon *= e_decr
             rewards[i] = R
             wins = ((rewards > 0).sum()/(i+1)) * 100
-            if R >= 1:
-                print('\rWin rate:{}% Episode:{}/{}:{} won!         '.format(int(wins), i+1, episodes, self.name), end='')
+            
+            if i >= 9:
+                wins_10 = ((rewards[i-9:i+1] > 0).sum()/10) * 100 
             else:
-                print('\rWin rate:{}% Episode:{}/{}:{} was defeated!'.format(int(wins), i+1, episodes, self.name), end='')
+                wins_10 = ((rewards[:i+1] > 0).sum()/(i+1)) * 100 
+            if R >= 1:
+                print('\rWin rate:{}% Win rate in the last 10 rounds:{}% Episode:{}/{}:{} won!         '.format(int(wins),int(wins_10), i+1, episodes, self.name), end='')
+            else:
+                print('\rWin rate:{}% Win rate in the last 10 rounds:{}% Episode:{}/{}:{} was defeated!'.format(int(wins),int(wins_10), i+1, episodes, self.name), end='')
             #print('reward:', R)    
             #print('-----------------------------------------------------------------------')
+            wins_episodes[i] =  wins
+            wins_10_episodes[i] = wins_10
+            lr_episodes[i] = lr
+            epsilon_episodes = self.epsilon
         wins = ((rewards > 0).sum()/episodes) * 100
         print('\nThe agent won {:.2f}% of the rounds'.format(wins))
         print('Número de estados visitados:', len(self.Q.keys()))
-        return rewards   
+        return {'rewards':rewards, 'wins':wins_episodes, 'wins_10':wins_10_episodes, 'lr':lr_episodes, 'epsilon':epsilon_episodes}   
 
 
 '''
