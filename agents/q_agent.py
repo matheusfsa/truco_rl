@@ -116,9 +116,7 @@ class QAgent(RLAgent):
                 R = self.task.get_reward(state)
                 s1, actions = self.observe(state)
                 if not self.task.is_finished(self.state):
-                    
-                    self.Q[tuple(s)][a] +=  lr*(R*self.greedy(s1) - self.Q[tuple(s)][a])
-                    
+                    self.Q[tuple(s)][a] = (1-lr)*self.Q[tuple(s)][a] + lr*(R*self.greedy(s1) - self.Q[tuple(s)][a])
                 else:
                     self.Q[tuple(s)][0] = R 
                 s = s1
