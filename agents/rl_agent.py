@@ -10,5 +10,4 @@ class RLAgent(Player):
     def observe(self, state):
         raise NotImplementedError
 
-    def fit(self, episodes, gamma, lr):
-        raise NotImplementedError
+   

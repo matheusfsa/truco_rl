@@ -5,15 +5,17 @@ import numpy as np
 
 class QAgent(RLAgent):
 
-    def __init__(self, name, episodes=1, gamma=0.8, lr=0.3, epsilon=0.3, verbose=True):
+    def __init__(self, name, opponent=OpPlayer('Opponent'), episodes=1, gamma=0.8, lr=0.3, epsilon=0.3, verbose=False, Q={}):
         super(QAgent, self).__init__(name)
         self.episodes = episodes
         self.gamma = gamma
         self.lr = lr
         self.epsilon = epsilon
         self.actions = []
-        self.Q = {}
-        self.task = Task(agent=self, opponent=OpPlayer('Opponent'), verbose=verbose)
+        self.Q = Q
+        self.verbose = verbose
+        self.task = Task(agent=self, opponent=opponent, verbose=self.verbose)
+        
     
     def act(self, S):
         _, actions = self.observe(S)
@@ -123,10 +125,11 @@ class QAgent(RLAgent):
                 s = s1
             self.epsilon *= 0.9
             rewards[i] = R
+            wins = ((rewards > 0).sum()/(i+1)) * 100
             if R >= 1:
-                print('\rEpisode:{}/{}:{} won!         '.format(i+1, self.episodes, self.name), end='')
+                print('\rWin rate:{}% Episode:{}/{}:{} won!         '.format(int(wins), i+1, self.episodes, self.name), end='')
             else:
-                print('\rEpisode:{}/{}:{} was defeated!'.format(i+1, self.episodes, self.name), end='')
+                print('\rWin rate:{}% Episode:{}/{}:{} was defeated!'.format(int(wins), i+1, self.episodes, self.name), end='')
             #print('reward:', R)    
             #print('-----------------------------------------------------------------------')
         wins = ((rewards > 0).sum()/self.episodes) * 100
