@@ -1,9 +1,22 @@
 
 from agents.q_agent import QAgent
+from agents.op_player import OpPlayer
+from base.task import Task
 import numpy as np
 
 class QAgentKB(QAgent):
 
+    def __init__(self, name, opponent=OpPlayer('Opponent'), episodes=1, gamma=0.8, lr=0.3, epsilon=0.3, verbose=False, Q={}):
+        super(QAgentKB, self).__init__(name)
+        self.episodes = episodes
+        self.gamma = gamma
+        self.lr = lr
+        self.epsilon = epsilon
+        self.actions = []
+        self.Q = Q
+        self.verbose = verbose
+        self.task = Task(agent=self, opponent=opponent, verbose=self.verbose)
+        
     def card_to_number(self, card, manilha):
         ranks = ['4', '5', '6', '7', 'Q', 'J', 'K', 'A', '2', '3']
         i = ranks.index(card.rank)
