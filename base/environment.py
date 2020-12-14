@@ -99,6 +99,7 @@ class Environment:
                     if self.verbose:
                         print("Valendo:", self.round.round_score, "tentos")
                     if played['call']:
+                        self.round.last_bet_call = self.round.teams[player]
                         if self.verbose:
                             print("{} grita: {}!!! {}, MARRECO!!!".format(player, str(self.round.bet()[0]).upper(), str(player).upper()))
                     else:

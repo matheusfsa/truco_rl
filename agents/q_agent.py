@@ -14,6 +14,12 @@ class QAgent(RLAgent):
         self.actions = []
         self.Q = {}
         self.task = Task(agent=self, opponent=OpPlayer('Opponent'), verbose=verbose)
+    
+    def act(self, S):
+        _, actions = self.observe(S)
+        a = self.chose_action(actions)
+        action = self.action_to_option(a)
+        return action
 
     def observe(self, state):
         # state = [cartas em ordem decrescente[ncards], manilha, carta do outro jogador na mesa[ncards], in_call, pode trucar, pode aumentar, ganhou o primeiro, ganhou o segundo]
