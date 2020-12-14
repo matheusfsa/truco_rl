@@ -30,7 +30,7 @@ class QAgent(RLAgent):
         ranks = ['4', '5', '6', '7', 'Q', 'J', 'K', 'A', '2', '3']
         self.state = state
         n_ranks = len(ranks)
-        n_cards = n_ranks
+        n_cards = n_ranks*4
         state_res = np.zeros((n_cards + n_ranks + n_cards +5,))
         hand = list(self.hand).copy()
         
@@ -119,13 +119,13 @@ class QAgent(RLAgent):
             return self.actions[a]
 
 
-    def fit(self,  gamma=0.8, lrs=0.125, epsilon=1.0, e_decr=0.99, episodes=1000, reset=True):
+    def fit(self,  gamma=0.8, lrs=0.125, epsilon=1.0, e_decr=0.99, episodes=1000, sample_rounds=100, reset=True):
         if reset:
             self.reset()
         self.epsilon = epsilon
         rewards = np.zeros((episodes,))  
         wins_episodes = np.zeros((episodes,))  
-        wins_10_episodes = np.zeros((episodes,))
+        wins_last_episodes = np.zeros((episodes,))
         lr_episodes = np.zeros((episodes,))
         epsilon_episodes = np.zeros((episodes,))
         changes = -1
@@ -159,24 +159,24 @@ class QAgent(RLAgent):
             rewards[i] = R
             wins = ((rewards > 0).sum()/(i+1)) * 100
             
-            if i >= 9:
-                wins_10 = ((rewards[i-9:i+1] > 0).sum()/10) * 100 
+            if i >= sample_rounds -1:
+                wins_last = ((rewards[i-sample_rounds -1:i+1] > 0).sum()/sample_rounds) * 100 
             else:
-                wins_10 = ((rewards[:i+1] > 0).sum()/(i+1)) * 100 
+                wins_last = ((rewards[:i+1] > 0).sum()/(i+1)) * 100 
             if R >= 1:
-                print('\rWin rate:{}% Win rate in the last 10 rounds:{}% Episode:{}/{}:{} won!         '.format(int(wins),int(wins_10), i+1, episodes, self.name), end='')
+                print('\rWin rate:{}% Win rate in the last rounds:{}% Episode:{}/{}:{} won!         '.format(int(wins),int(wins_last), i+1, episodes, self.name), end='')
             else:
-                print('\rWin rate:{}% Win rate in the last 10 rounds:{}% Episode:{}/{}:{} was defeated!'.format(int(wins),int(wins_10), i+1, episodes, self.name), end='')
+                print('\rWin rate:{}% Win rate in the last rounds:{}% Episode:{}/{}:{} was defeated!'.format(int(wins),int(wins_last), i+1, episodes, self.name), end='')
             #print('reward:', R)    
             #print('-----------------------------------------------------------------------')
             wins_episodes[i] =  wins
-            wins_10_episodes[i] = wins_10
+            wins_last_episodes[i] = wins_last
             lr_episodes[i] = lr
             epsilon_episodes = self.epsilon
         wins = ((rewards > 0).sum()/episodes) * 100
         print('\nThe agent won {:.2f}% of the rounds'.format(wins))
         print('Número de estados visitados:', len(self.Q.keys()))
-        return {'rewards':rewards, 'wins':wins_episodes, 'wins_10':wins_10_episodes, 'lr':lr_episodes, 'epsilon':epsilon_episodes}   
+        return {'rewards':rewards, 'wins':wins_episodes, 'wins_last':wins_last_episodes, 'lr':lr_episodes, 'epsilon':epsilon_episodes}   
 
 
 '''
