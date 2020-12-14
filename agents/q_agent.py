@@ -42,7 +42,7 @@ class QAgent(RLAgent):
             state_res[n_cards+n_ranks:n_cards+n_ranks+n_cards]+= state['round'].table[-1].to_array()
         state_res[n_cards + n_ranks + n_cards] = state['round'].in_call* 1.0
         
-        if not self.task.is_finished(state):
+        if 'options' in state:
             if isinstance(state['options'], list):
                 self.actions = state['options']
                 state_res[n_cards + n_ranks + n_cards + 2] = ('2' in self.actions)* 1.0
