@@ -16,13 +16,13 @@ class QAgent(RLAgent):
         self.task = Task(agent=self, opponent=OpPlayer('Opponent'), verbose=verbose)
 
     def observe(self, state):
-        # state = [cartas em ordem decrescente[ncards], manilha, carta do outro jogador na mesa[ncards], in_call, pode trucar, pode aumentar]
+        # state = [cartas em ordem decrescente[ncards], manilha, carta do outro jogador na mesa[ncards], in_call, pode trucar, pode aumentar, ganhou o primeiro, ganhou o segundo]
         
         ranks = ['4', '5', '6', '7', 'Q', 'J', 'K', 'A', '2', '3']
         self.state = state
         n_ranks = len(ranks)
         n_cards = n_ranks*4
-        state_res = np.zeros((n_cards + n_ranks + n_cards +1 + 1 + 1,))
+        state_res = np.zeros((n_cards + n_ranks + n_cards +5,))
         hand = list(self.hand).copy()
         
         for c in hand:
@@ -44,7 +44,16 @@ class QAgent(RLAgent):
             actions = np.zeros(len(self.actions))
         else:
             actions = [0]
-        
+        team = state['round'].teams[self]
+        winners = state['round'].winners
+        if len(winners) >= 1:
+            if winners[0] is not None:
+                state_res[n_cards + n_ranks + n_cards + 3] = (winners[0] == team)*1.0
+            if len(winners) == 2:
+                if winners[1] is not None:
+                    state_res[n_cards + n_ranks + n_cards + 4] = (winners[1] == team)*1.0
+
+                 
         return state_res, self.get_actions(state_res, actions)
     
     def get_actions(self, state, actions):
@@ -85,7 +94,8 @@ class QAgent(RLAgent):
 
 
     def fit(self):
-        rewards = np.zeros((self.episodes,))
+        rewards = np.zeros((self.episodes,))  
+        self.epsilon = 1.0  
         for i in range(self.episodes):
             
             state = self.task.initial_state()
@@ -105,6 +115,7 @@ class QAgent(RLAgent):
                 else:
                     self.Q[tuple(s)][0] = self.lr*(R - self.Q[tuple(s)][a])
                 s = s1
+            self.epsilon *= 0.9
             rewards[i] = R
             if R >= 1:
                 print('\rEpisode:{}/{}:{} won!         '.format(i+1, self.episodes, self.name), end='')
@@ -114,6 +125,7 @@ class QAgent(RLAgent):
             #print('-----------------------------------------------------------------------')
         wins = ((rewards > 0).sum()/self.episodes) * 100
         print('\nThe agent won {:.2f}% of the rounds'.format(wins))
+        print('Número de estados visitados:', len(self.Q.keys()))
         return rewards   
 
 
