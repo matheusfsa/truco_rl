@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 from base.player import Player
 
 class QAPlayer(Player):
+    
     def act(self, S):
         print("Sua mão,", self, ":", [card.name for card in self.hand])
         print("Manilha:", S['round'].manilha)

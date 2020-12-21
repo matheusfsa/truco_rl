@@ -2,7 +2,7 @@ import pyCardDeck
 
 class Player:
 #
-    def __init__(self, name: str):
+    def __init__(self, name):
         self.hand = pyCardDeck.Deck(name=name, reshuffle=False)
         self.name = name
         self.manilha = None
