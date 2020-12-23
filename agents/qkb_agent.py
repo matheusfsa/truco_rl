@@ -7,8 +7,8 @@ import numpy as np
 
 class QAgentKB(QAgentBase):
 
-    def __init__(self, name, opponent=OpPlayer('Opponent'), verbose=False, Q={}, is_copy=False):
-        super(QAgentKB, self).__init__(name, opponent=opponent, verbose=verbose, Q=Q, is_copy=is_copy)
+    def __init__(self, name, opponent=OpPlayer('Opponent'), verbose=False, Q={}, N={}, is_copy=False):
+        super(QAgentKB, self).__init__(name, opponent=opponent, verbose=verbose, Q=Q, N={}, is_copy=is_copy)
         self.actions = []
         self.Q = Q
         self.T = np.zeros((7,))
@@ -23,7 +23,7 @@ class QAgentKB(QAgentBase):
         i = ranks.index(card.rank)
         j = (card.suit - 1)
         if i == manilha:
-            return 3.
+            return 3. + j
         if i < 4:
           return 0
         if i < 7:
@@ -80,3 +80,9 @@ class QAgentKB(QAgentBase):
         actions = self.get_actions(state_res, actions)
         
         return state_res, actions
+
+def train_test(train_episodes=10000, test_episodes=1000, gamma=1.0, lr=0.15, epsilon=1.0, sample_rounds=1000, n0=1):
+    qkb_agent = QAgentKB('QAgentLFA', verbose=False)
+    history_qkb = qkb_agent.fit(gamma=gamma, lrs=lr, epsilon=epsilon, episodes=train_episodes, sample_rounds=sample_rounds,n0=n0)
+    qkb_agent.test(test_episodes)
+    return qkb_agent

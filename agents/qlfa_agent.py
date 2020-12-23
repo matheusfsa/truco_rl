@@ -1,9 +1,12 @@
 import torch
+import torch.optim as optim
+import torch.nn as nn
 from agents.query_player import QAPlayer
 from agents.rl_agent import RLAgent
 from agents.op_player import OpPlayer
 from base.task import Task
 import numpy as np
+import random
 
 class QAgentLFA(RLAgent):
 
@@ -13,12 +16,35 @@ class QAgentLFA(RLAgent):
         self.T = np.zeros((7,))
         self.actions_shape = actions_shape
         self.state_shape = state_shape
-        self.W = torch.randn(state_shape + actions_shape, 1, requires_grad=True)
+        self.Q = self.build_q(state_shape + actions_shape, 1)
+        self.N = {}
         self.verbose = verbose
         if is_copy:
           self.task = None
         else:
           self.task = Task(agent=self, opponent=opponent, verbose=self.verbose)
+
+    def build_q(self, input_shape, output_shape):
+        '''
+        model = nn.Sequential(
+          nn.Linear(input_shape, 64),
+          nn.Linear(64, 1)
+        )
+        return model
+        '''
+        return nn.Linear(input_shape, output_shape)
+
+    def card_to_number(self, card, manilha):
+        ranks = ['4', '5', '6', '7', 'Q', 'J', 'K', 'A', '2', '3']
+        i = ranks.index(card.rank)
+        j = (card.suit - 1)
+        if i == manilha:
+            return 3. + j
+        if i < 4:
+          return 0
+        if i < 7:
+            return 1.
+        return 2.
 
     def observe(self, state):
         # state_res = [0->maior carta (-1 - 3), 1->carta do meio(-1 - 3), 2->menor carta (-1 - 3), 3->carta na mesa(-1 - 3),
@@ -71,13 +97,14 @@ class QAgentLFA(RLAgent):
         return state_res, actions
 
     def qs(self, s, actions):
-        w1 = self.W.clone().detach()
-        qs = torch.zeros(len(actions))
-        for i in range(len(actions)):
-            a = torch.zeros(1, self.actions_shape)
-            a[0, actions[i]] = 1
-            x = torch.cat((s, a), dim=1)
-            qs[i] = torch.mm(x, self.W)
+        with torch.no_grad():
+            qs = torch.zeros(len(actions))
+            for i in range(len(actions)):
+                a = torch.zeros(1, self.actions_shape)
+                a[0, actions[i]] = 1
+                x = torch.cat((s, a), dim=1)
+                qs[i] = self.Q(x)
+                
         return qs
 
     def epsilon_greedy(self, s, actions, epsilon):
@@ -123,11 +150,11 @@ class QAgentLFA(RLAgent):
         action = self.action_to_option(a)
         return action
 
-    def Q(self, s, a, actions): 
+    def predict(self, s, a, actions): 
         acs = torch.zeros(1, self.actions_shape)
         acs[0, actions[a]] = 1
         x = torch.cat((s, acs), dim=1)
-        return torch.mm(x, self.W)
+        return self.Q(x)
 
     def target(self, s, actions, R, gamma):
         qs = self.qs(s, actions)
@@ -136,14 +163,20 @@ class QAgentLFA(RLAgent):
     def loss(self, predict, target):
         return predict - target
     
-    def update(self, pred, s1, actions, R, gamma, lr):
-        t = self.target(s1, actions, R, gamma)
-        l = pred - t
-        l.backward()
-        self.W.data.sub_(lr*self.W.grad.data)
-        self.W.grad.zero_()
+    def update(self, s, a, actions, s1, actions1, R, gamma, lr, is_finished):
+        if is_finished:
+            t = torch.tensor(R)
+            
+        else:
+            t = self.target(s1, actions, R, gamma)
+        optimizer = optim.SGD(self.Q.parameters(), lr=lr, momentum=0.9)
+        optimizer.zero_grad()
+        pred = self.predict(s, a, actions)
+        loss = self.loss(pred, t)
+        loss.backward()
+        optimizer.step()
 
-    def fit(self,  gamma=0.8, lr=0.125, epsilon=1.0, e_decr=0.99, episodes=1000, sample_rounds=100, reset=True ,policy='epsilon_greedy'):
+    def fit(self,  gamma=0.8, lr=0.125, epsilon=1.0, e_decr=0.99, episodes=1000, sample_rounds=100, reset=True ,policy='epsilon_greedy', n0=1):
         
         #print('Estados visitados antes do treinamento:', len(self.Q.keys()))
         e_decr = epsilon/episodes
@@ -155,13 +188,19 @@ class QAgentLFA(RLAgent):
             state = self.task.initial_state()
             s, actions = self.observe(state)
             while not self.task.is_finished(self.state):
+                s_list = tuple(s.tolist()[0])
+                if tuple(s.tolist()[0]) not in self.N:
+                    self.N[tuple(s.tolist()[0])] = 0
+                self.N[tuple(s.tolist()[0])] += 1
+                epsilon=(n0/(n0 + self.N[tuple(s.tolist()[0])]))
                 a = self.chose_action(s, actions, epsilon)
                 action = self.action_to_option(a)
                 state = self.task.step(action, state)
                 s1, actions1 = self.observe(state)
                 R = self.task.get_reward(state)
-                pred = self.Q(s, a, actions)
-                self.update(pred, s1, actions, R, gamma, lr)
+                pred = self.predict(s, a, actions)
+                is_finished = self.task.is_finished(self.state)
+                self.update(s, a, actions, s1, actions1, R, gamma, lr, is_finished)
                 s = s1
                 actions = actions1
 
@@ -203,6 +242,7 @@ class QAgentLFA(RLAgent):
         return {'rewards':rewards, 'wins':wins_episodes, 'wins_test':wins_test_episodes,'wins_last':wins_last_episodes} 
 
     def test(self, n, v=True, opponent=OpPlayer('Opponent'), reset_t=False):
+
         if n:
           if reset_t:
             self.T = self.T = np.zeros((7,))
@@ -226,3 +266,9 @@ class QAgentLFA(RLAgent):
             print('\nThe agent won {:.2f}% of the rounds'.format(wins))
           return rewards, wins
         return [], 1.0
+
+def train_test(train_episodes=10000, test_episodes=1000, gamma=1.0, lr=0.15, epsilon=1.0, sample_rounds=1000, n0=1):
+    qlfa_agent = QAgentLFA('QAgentLFA', verbose=False)
+    history_qlfa = qlfa_agent.fit(gamma=gamma, lr=lr, epsilon=epsilon, episodes=train_episodes, sample_rounds=sample_rounds, n0=n0)
+    qlfa_agent.test(test_episodes)
+    return qlfa_agent
