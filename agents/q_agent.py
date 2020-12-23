@@ -6,12 +6,14 @@ import random
 
 class QAgentBase(RLAgent):
 
-    def __init__(self, name, opponent=OpPlayer('Opponent'), verbose=False, Q={}, N={},is_copy=False):
+    def __init__(self, name, opponent=OpPlayer('Opponent'), verbose=False, Q={}, N_s={}, N_sa={},is_copy=False):
         super(QAgentBase, self).__init__(name)
+        self.opponent = opponent
         self.actions = []
         self.Q = Q
         self.T = np.zeros((7,))
-        self.N = N
+        self.N_s = N_s
+        self.N_sa = N_sa
         self.verbose = verbose
         if is_copy:
           self.task = None
@@ -35,7 +37,8 @@ class QAgentBase(RLAgent):
             self.N[s] = 0
         if s not in self.Q:
             self.Q[s] = np.zeros(len(actions))
-            self.N[s] = 0
+            self.N_s[s] = 0
+            self.N_sa[s] = np.zeros(len(actions))
         return self.Q[s]
     
     def epsilon_greedy(self, actions, epsilon):
@@ -99,7 +102,7 @@ class QAgentBase(RLAgent):
     def fit(self,  gamma=0.8, lrs=0.125, epsilon=1.0, e_decr=0.99, episodes=1000, sample_rounds=100, reset=True ,policy='epsilon_greedy', n0=1):
         if reset:
             self.reset()
-        print("\nTreinamento")
+        print("\nTreinamento contra", self.opponent)
         print('Estados visitados antes do treinamento:', len(self.Q.keys()))
         e_decr = epsilon/episodes
         epsilon = epsilon
@@ -124,8 +127,9 @@ class QAgentBase(RLAgent):
             state = self.task.initial_state()
             s, actions = self.observe(state)
             while not self.task.is_finished(self.state):
-                self.N[tuple(s)] += 1
-                epsilon=(n0/(n0 + self.N[tuple(s)]))
+                self.N_s[tuple(s)] += 1
+                epsilon=(n0/(n0 + self.N_s[tuple(s)]))
+                
                 a = self.chose_action(actions, epsilon)
                 action = self.action_to_option(a)
                 state = self.task.step(action, state)
@@ -133,6 +137,7 @@ class QAgentBase(RLAgent):
                 R = self.task.get_reward(state)
                 target = R + self.greedy(s1)
                 predict = self.Q[tuple(s)][a]
+                lr = 1/(1+self.N_sa[tuple(s)][a])
                 self.Q[tuple(s)][a] = predict + lr*(target - predict)
                 s = s1
             self.Q[tuple(s)][0] = 0
@@ -176,6 +181,7 @@ class QAgentBase(RLAgent):
         print('===================================================')
         print('The agent won {:.2f}% of the rounds'.format(wins))
         print('Número de estados visitados:', len(self.Q.keys()))
+        print('Reforço Médio:', rewards.mean())
         print('Jogou a maior carta:{}, Jogou a carta do meio:{}, Jogou a menor carta:{},\nPediu Truco:{}, Aceitou Truco:{}, Aumentou Aposta:{}, Fugiu:{}'.format(*self.T))
         print('===================================================')
         
@@ -183,7 +189,7 @@ class QAgentBase(RLAgent):
           
     def test(self, n, v=True, opponent=OpPlayer('Opponent'), reset_t=False):
         if v:
-            print("\nTeste")
+            print("\nTeste contra", opponent)
         if n:
           if reset_t:
             self.T = self.T = np.zeros((7,))
@@ -207,6 +213,7 @@ class QAgentBase(RLAgent):
             print('')
             print('===================================================')              
             print('The agent won {:.2f}% of the rounds'.format(wins))
+            print('Reforço Médio:', rewards.mean())
             print('Jogou a maior carta:{}, Jogou a carta do meio:{}, Jogou a menor carta:{},\nPediu Truco:{}, Aceitou Truco:{}, Aumentou Aposta:{}, Fugiu:{}'.format(*self.T))
             print('===================================================')     
           return rewards, wins

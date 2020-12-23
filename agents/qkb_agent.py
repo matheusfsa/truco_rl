@@ -2,13 +2,14 @@ from agents.query_player import QAPlayer
 from agents.rl_agent import RLAgent
 from agents.q_agent import QAgentBase
 from agents.op_player import OpPlayer
+from agents.random_player import RandomPlayer
 from base.task import Task
 import numpy as np
 
 class QAgentKB(QAgentBase):
 
-    def __init__(self, name, opponent=OpPlayer('Opponent'), verbose=False, Q={}, N={}, is_copy=False):
-        super(QAgentKB, self).__init__(name, opponent=opponent, verbose=verbose, Q=Q, N={}, is_copy=is_copy)
+    def __init__(self, name, opponent=OpPlayer('Opponent'), verbose=False, Q={}, N_s={}, N_sa={}, is_copy=False):
+        super(QAgentKB, self).__init__(name, opponent=opponent, verbose=verbose, Q=Q, N_s=N_s, N_sa=N_sa, is_copy=is_copy)
         self.actions = []
         self.Q = Q
         self.T = np.zeros((7,))
@@ -84,5 +85,6 @@ class QAgentKB(QAgentBase):
 def train_test(train_episodes=10000, test_episodes=1000, gamma=1.0, lr=0.15, epsilon=1.0, sample_rounds=1000, n0=1):
     qkb_agent = QAgentKB('QAgentLFA', verbose=False)
     history_qkb = qkb_agent.fit(gamma=gamma, lrs=lr, epsilon=epsilon, episodes=train_episodes, sample_rounds=sample_rounds,n0=n0)
-    qkb_agent.test(test_episodes)
+    qkb_agent.test(test_episodes, reset_t=True)
+    qkb_agent.test(test_episodes, opponent=RandomPlayer(name='Randômico'), reset_t=True)
     return qkb_agent

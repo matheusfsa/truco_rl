@@ -7,8 +7,8 @@ import numpy as np
 
 class QAgentSimple(QAgentBase):
 
-    def __init__(self, name, opponent=OpPlayer('Opponent'), verbose=False, Q={}, is_copy=False):
-        super(QAgentSimple, self).__init__(name, opponent=opponent, verbose=verbose, Q=Q, is_copy=is_copy)
+    def __init__(self, name, opponent=OpPlayer('Opponent'), verbose=False, Q={}, N_s={}, N_sa={}, is_copy=False):
+        super(QAgentSimple, self).__init__(name, opponent=opponent, verbose=verbose, Q=Q, N_s=N_s, N_sa=N_sa, is_copy=is_copy)
         self.actions = []
         self.Q = Q
         self.T = np.zeros((7,))

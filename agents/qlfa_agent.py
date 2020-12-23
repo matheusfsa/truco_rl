@@ -161,7 +161,7 @@ class QAgentLFA(RLAgent):
         return R + gamma*qs.max()
     
     def loss(self, predict, target):
-        return predict - target
+        return nn.MSELoss()(predict.reshape(1,1).float(), target.reshape(1,1).float())
     
     def update(self, s, a, actions, s1, actions1, R, gamma, lr, is_finished):
         if is_finished:

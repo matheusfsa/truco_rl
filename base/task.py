@@ -20,9 +20,9 @@ class Task:
             r_opponent = S['game'].scores[S['round'].teams[self.opponent]]
             if r == 0:
                 return -1*r_opponent
-            return r
+            return 1.
         else:
-            return 0
+            return -0.5
             winners = S['round'].winners
             if len(winners) == 1:
               if winners[0]  == S['round'].teams[self.agent]:
